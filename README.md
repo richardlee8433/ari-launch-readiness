@@ -1,5 +1,7 @@
 # Ari Launch Readiness — Cross-Functional Tracker
 
+**Repo:** https://github.com/richardlee8433/ari-launch-readiness
+
 An interactive dashboard that makes one question answerable at a glance: **is the organization ready to support Ari, not just ship it?**
 
 Built for the Adherent (formerly Compliance & Risks) *Product Delivery & Operations Lead* conversation — a working artefact of how I'd stand up a delivery system for a high-trust GA launch, rather than a slide describing one.
