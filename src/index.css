@@ -1,8 +1,7 @@
 @import "tailwindcss";
 
-/* Adherent brand palette — captured from adherent.com computed styles, 2026-06-30.
-   See PRD appendix. Exposed as Tailwind theme tokens so brand colours are used
-   by name (bg-navy, text-teal, …) rather than scattered hex values. */
+/* Clearline (fictional B2B compliance SaaS) — professional navy/teal palette,
+   exposed as Tailwind theme tokens so colours are used by name. */
 @theme {
   --color-navy: #162D3C;
   --color-navy-2: #17242C;
@@ -15,6 +14,13 @@
   --color-pale-blue: #E7F1FF;
   --color-line: #E0E5E7;
   --color-mid: #6D7278;
+
+  --color-red: #C0392B;
+  --color-red-soft: #F7DEDA;
+  --color-amber: #B9770E;
+  --color-amber-soft: #FDEBD0;
+  --color-green: #1E8449;
+  --color-green-soft: #D5F5E3;
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
