@@ -172,11 +172,15 @@ export function deliveryAgents(inits, asOf) {
   const agents = [
     {
       name: "Pace Agent",
-      watches: `readiness vs. launch date on ${launches.length} upcoming launches`,
+      watches: launches.length
+        ? `readiness vs. launch date on ${launches.length} upcoming launches`
+        : "readiness vs. launch date",
       flagged: belowPace.length > 0,
       finding: belowPace.length
         ? `${belowPace.length} launch below the pace line`
-        : "all launches tracking the pace line",
+        : launches.length
+          ? "all launches tracking the pace line"
+          : "nothing to watch — no initiative carries a launch date",
       recommendation: belowPace.length ? paceRec : null,
     },
   ];
@@ -209,15 +213,17 @@ export function deliveryAgents(inits, asOf) {
     s.openBlockers.map((b) => ({ init, b, days: daysBetween(b.raised, asOf) }))
   );
   const overSla = openBlockers.filter((x) => x.days > SLA);
+  // recommend against the OLDEST over-SLA blocker, not the first in data order
+  const worstBlocker = overSla.reduce((a, b) => (b.days > (a?.days || 0) ? b : a), null);
   agents.push({
     name: "Blocker Agent",
     watches: `${openBlockers.length} open blockers against a ${SLA}d unblock SLA`,
     flagged: overSla.length > 0,
     finding: overSla.length
-      ? `${overSla.length} over SLA — oldest ${Math.max(...overSla.map((x) => x.days))}d`
+      ? `${overSla.length} over SLA — oldest ${worstBlocker.days}d`
       : "no blocker over SLA",
-    recommendation: overSla.length
-      ? `${short(overSla[0].init)}: waiting on ${overSla[0].b.waitingOn.split("—")[0].trim()} for ${overSla[0].days}d — book a working session between the two owners this week; it won't clear itself in the weekly.`
+    recommendation: worstBlocker
+      ? `${short(worstBlocker.init)}: waiting on ${worstBlocker.b.waitingOn.split("—")[0].trim()} for ${worstBlocker.days}d — book a working session between the two owners this week; it won't clear itself in the weekly.`
       : null,
   });
 
