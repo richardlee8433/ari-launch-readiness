@@ -25,6 +25,45 @@ export const meta = {
     "Weekly delivery sync · mid-quarter re-plan · readiness gate before every launch · 30/60/90 post-launch reviews",
 };
 
+// Company goals — the "how does it line up" layer. Every initiative exists
+// because a goal needs it; goal status is rolled up live from the health of
+// its linked initiatives (see derive.js), never set by hand.
+// Numbers are fictional but benchmark-anchored (see Clearline_Company_Goals_Reference.md).
+export const goals = [
+  {
+    id: "g1",
+    code: "G1",
+    name: "Make the AI line commercially real",
+    fy: "20% of installed base actively using the AI agent by year-end",
+    q3: "Wave-1: 40 accounts live, ≥50% running weekly workflows",
+    initiatives: ["atlas", "aiact"],
+  },
+  {
+    id: "g2",
+    code: "G2",
+    name: "NRR ≥ 112%",
+    fy: "Premium vertical-SaaS retention band, via AI attach + repackaging",
+    q3: "≥50% of renewal accounts on new packaging by day-60",
+    initiatives: ["pricing"],
+  },
+  {
+    id: "g3",
+    code: "G3",
+    name: "Efficient growth",
+    fy: "~25% ARR growth at PE-grade cost discipline (Rule-of-40)",
+    q3: "PS hours per standard onboarding −30% (pilot)",
+    initiatives: ["onboarding"],
+  },
+  {
+    id: "g4",
+    code: "G4",
+    name: "Zero trust incidents",
+    fy: "No material AI-accuracy incident at a regulated customer",
+    q3: "Day-30 accuracy review passed → 'autonomous' language cleared",
+    initiatives: ["atlas"],
+  },
+];
+
 // Rhythm stages — the operating rhythm every initiative moves through.
 export const STAGES = [
   { key: "planning", label: "Plan" },

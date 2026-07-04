@@ -128,6 +128,129 @@ export function portfolioSignals(inits, asOf) {
   return { all, active, atRisk, decisionDebt, openDecisions, oldestBlocker, paceWarnings };
 }
 
+// Goal roll-up: a goal's status is the worst health among its active linked
+// initiatives. Nothing to type — if Atlas goes red, G1 and G4 go red with it.
+export function goalStatus(goal, inits, asOf) {
+  const linked = goal.initiatives
+    .map((id) => inits.find((i) => i.id === id))
+    .filter(Boolean);
+  const active = linked.filter((i) => i.stage !== "planning");
+  const healths = active.map((i) => signalsFor(i, asOf).health);
+  const status = healths.includes("red")
+    ? "red"
+    : healths.includes("amber")
+      ? "amber"
+      : active.length
+        ? "green"
+        : "none";
+  return { linked, active, status };
+}
+
+// ---------------------------------------------------------------------------
+// Delivery agents — the same derived signals, framed as what they are in
+// operation: small watchers over the backbone. Each one states what it
+// watches, what it found, and a drafted next move (re-scope / re-estimate /
+// escalate / reset expectations). Rule-based here; in production these run on
+// a schedule with an LLM drafting the options — judgment stays human.
+// ---------------------------------------------------------------------------
+export function deliveryAgents(inits, asOf) {
+  const all = inits.map((i) => ({ init: i, s: signalsFor(i, asOf) }));
+  const short = (i) => i.name.split("—")[0].trim();
+
+  // Pace Agent — readiness % vs. the pace line on upcoming launches.
+  const launches = all.filter(({ s }) => s.daysToLaunch != null && s.readiness);
+  const belowPace = launches.filter(({ s }) => s.paceGap != null && s.paceGap >= 8);
+  const paceRec = belowPace
+    .map(({ init, s }) => {
+      const lastScope = init.scopeChanges?.[init.scopeChanges.length - 1];
+      const cut = lastScope
+        ? ` Newest scope addition (“${lastScope.change.split("(")[0].trim()}”) is the re-scope candidate.`
+        : "";
+      return `${short(init)}: ${s.readiness.pct}% ready with ${s.daysToLaunch}d left — re-scope or re-estimate now and reset GTM expectations this week, not at the gate.${cut}`;
+    })
+    .join(" ");
+  const agents = [
+    {
+      name: "Pace Agent",
+      watches: `readiness vs. launch date on ${launches.length} upcoming launches`,
+      flagged: belowPace.length > 0,
+      finding: belowPace.length
+        ? `${belowPace.length} launch below the pace line`
+        : "all launches tracking the pace line",
+      recommendation: belowPace.length ? paceRec : null,
+    },
+  ];
+
+  // Decision Agent — every open decision has an owner and a due date.
+  const openDecisions = all.flatMap(({ init, s }) =>
+    s.openDecisions.map((d) => ({ init, d, overdue: daysBetween(d.due, asOf) }))
+  );
+  const overdue = openDecisions.filter((x) => x.overdue > 0);
+  agents.push({
+    name: "Decision Agent",
+    watches: `${openDecisions.length} open decisions, each with one owner and one due date`,
+    flagged: overdue.length > 0,
+    finding: overdue.length
+      ? `${overdue.length} past due — oldest ${Math.max(...overdue.map((x) => x.overdue))}d`
+      : "all decisions within due",
+    recommendation: overdue.length
+      ? overdue
+          .map(
+            (x) =>
+              `“${x.d.q}” (${x.d.owner}) is ${x.overdue}d overdue and gates downstream prep — escalate at today's exec sync with a 48h decide-by.`
+          )
+          .join(" ")
+      : null,
+  });
+
+  // Blocker Agent — blocker age against a 7-day unblock SLA.
+  const SLA = 7;
+  const openBlockers = all.flatMap(({ init, s }) =>
+    s.openBlockers.map((b) => ({ init, b, days: daysBetween(b.raised, asOf) }))
+  );
+  const overSla = openBlockers.filter((x) => x.days > SLA);
+  agents.push({
+    name: "Blocker Agent",
+    watches: `${openBlockers.length} open blockers against a ${SLA}d unblock SLA`,
+    flagged: overSla.length > 0,
+    finding: overSla.length
+      ? `${overSla.length} over SLA — oldest ${Math.max(...overSla.map((x) => x.days))}d`
+      : "no blocker over SLA",
+    recommendation: overSla.length
+      ? `${short(overSla[0].init)}: waiting on ${overSla[0].b.waitingOn.split("—")[0].trim()} for ${overSla[0].days}d — book a working session between the two owners this week; it won't clear itself in the weekly.`
+      : null,
+  });
+
+  // Adoption Agent — post-launch absorption vs. target.
+  const launched = all.filter(({ init }) => init.postLaunch);
+  const behind = launched.filter(
+    ({ init }) => init.postLaunch.adoptionActual < init.postLaunch.adoptionTarget * 0.8
+  );
+  agents.push({
+    name: "Adoption Agent",
+    watches: `${launched.length} launched initiative through 30/60/90 absorption`,
+    flagged: behind.length > 0,
+    finding: behind.length
+      ? behind
+          .map(
+            ({ init }) =>
+              `${short(init)}: ${init.postLaunch.adoptionActual}% at ${init.postLaunch.measuredAt} vs ${init.postLaunch.adoptionTarget}% by ${init.postLaunch.adoptionTargetBy}`
+          )
+          .join(" · ")
+      : "adoption tracking target",
+    recommendation: behind.length
+      ? behind
+          .map(({ init, s }) => {
+            const lever = s.openDecisions[0];
+            return `Re-forecast day-60 for ${short(init)} now${lever ? ` — the open “${lever.q.split("?")[0]}” decision (due ${lever.due}) is the lever` : ""}.`;
+          })
+          .join(" ")
+      : null,
+  });
+
+  return agents;
+}
+
 // Merged event feed, newest first.
 export function recentEvents(inits, limit = 8) {
   return inits

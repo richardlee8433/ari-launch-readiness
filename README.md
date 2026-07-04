@@ -24,6 +24,12 @@ A delivery OS is not six tools. It is **one data object — the Initiative — r
 
 The four initiatives are staged deliberately: one approaching a hard readiness gate (at risk), one healthy mid-build (the contrast), one post-launch with adoption below target (the learning loop working), and one entering at Plan (initiatives are born inside the rhythm, not bolted on).
 
+## Two layers on top
+
+**Company goals — "how does it line up."** Four FY2026 goals (AI line commercially real · NRR ≥ 112% · efficient growth · zero trust incidents — fictional, but benchmark-anchored) sit at the top of the home screen. Each goal links to the initiatives that carry it, and its status **rolls up live from initiative health** — if the AI launch goes red, the goals it serves go red with it. Day-to-day feed at the bottom, quarter/year at the top: both altitudes on one screen.
+
+**Delivery agents — "who's watching."** The early-warning layer is framed as what it would be in operation: four small agents (Pace, Decision, Blocker, Adoption), each watching one dimension of the backbone and **drafting the next move** — re-scope (it even nominates the newest scope addition as the cut candidate), re-estimate, escalate with a decide-by, re-forecast. Rule-based in this demo; in production these run on a schedule with an LLM drafting the options. Judgment stays human either way.
+
 ## Everything red is derived
 
 The system's health signals are **computed from the backbone data, not hand-set**: readiness %, pace-vs-launch-date gap, decision aging, blocker age, adoption gap. That's the core argument of the design — leading indicators should fall out of the data teams already maintain, not require a second reporting system someone has to feed.
@@ -37,8 +43,8 @@ Clearline is an invented B2B product-compliance SaaS company (mature platform, 2
 ## How it was made
 
 - **Stack:** React 19 + Vite + Tailwind CSS v4. No backend — the point of the demo is the *system design*, so the backbone is a single readable data file and a derivation module.
-- **Built with Claude Code**, in the same working session that produced the PRD thinking behind it.
-- ~600 lines of source across a data backbone, a derivation layer, and three components.
+- **Built with Claude Code**, in the same working session that produced the PRD thinking behind it. The pattern is deliberate: the same agentic loop I use for personal productivity — a watcher over structured state, drafting the next move for a human to approve — scaled up one level to a team's delivery backbone. That's what the Delivery Agents layer is.
+- ~700 lines of source across a data backbone, a derivation layer, and three components.
 
 ## Run it
 

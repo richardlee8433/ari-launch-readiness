@@ -2,7 +2,7 @@
 // charter · readiness gate · decisions & blockers · post-launch loop.
 
 import { useState } from "react";
-import { STAGES } from "../data.js";
+import { STAGES, goals } from "../data.js";
 import { signalsFor, daysBetween } from "../derive.js";
 import { StatusChip, HealthBadge, Panel, SectionLabel, CountBadge } from "./ui.jsx";
 
@@ -381,7 +381,20 @@ export default function Cockpit({ init, asOf, onBack, initialTab }) {
               {init.launchedOn && <span> · launched {init.launchedOn}</span>}
             </p>
           </div>
-          <HealthBadge health={signals.health} />
+          <div className="flex items-center gap-2">
+            {goals
+              .filter((g) => g.initiatives.includes(init.id))
+              .map((g) => (
+                <span
+                  key={g.id}
+                  title={`${g.name} — ${g.fy}`}
+                  className="rounded bg-navy px-1.5 py-0.5 text-[10px] font-bold text-white"
+                >
+                  {g.code}
+                </span>
+              ))}
+            <HealthBadge health={signals.health} />
+          </div>
         </div>
         {signals.reasons.length > 0 && (
           <ul className="mt-3 space-y-1 border-t border-line pt-3">
