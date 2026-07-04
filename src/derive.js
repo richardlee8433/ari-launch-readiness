@@ -222,8 +222,12 @@ export function deliveryAgents(inits, asOf) {
     finding: overSla.length
       ? `${overSla.length} over SLA — oldest ${worstBlocker.days}d`
       : "no blocker over SLA",
+    // the drafted move escalates with age — a working session is right at 2x
+    // SLA and absurd at 15x; past 4x the honest question is continue-or-park
     recommendation: worstBlocker
-      ? `${short(worstBlocker.init)}: waiting on ${worstBlocker.b.waitingOn.split("—")[0].trim()} for ${worstBlocker.days}d — book a working session between the two owners this week; it won't clear itself in the weekly.`
+      ? worstBlocker.days > SLA * 4
+        ? `${short(worstBlocker.init)}: waiting on ${worstBlocker.b.waitingOn.split("—")[0].trim()} for ${worstBlocker.days}d — this is past working-session territory; take a continue-or-park decision to the exec sponsor this week.`
+        : `${short(worstBlocker.init)}: waiting on ${worstBlocker.b.waitingOn.split("—")[0].trim()} for ${worstBlocker.days}d — book a working session between the two owners this week; it won't clear itself in the weekly.`
       : null,
   });
 
@@ -248,7 +252,7 @@ export function deliveryAgents(inits, asOf) {
       ? behind
           .map(({ init, s }) => {
             const lever = s.openDecisions[0];
-            return `Re-forecast day-60 for ${short(init)} now${lever ? ` — the open “${lever.q.split("?")[0]}” decision (due ${lever.due}) is the lever` : ""}.`;
+            return `Re-forecast the ${init.postLaunch.adoptionTargetBy} target for ${short(init)} now${lever ? ` — the open “${lever.q.split("?")[0]}” decision (due ${lever.due}) is the lever` : ""}.`;
           })
           .join(" ")
       : null,
