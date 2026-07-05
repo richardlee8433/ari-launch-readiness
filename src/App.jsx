@@ -2,9 +2,11 @@ import { useState } from "react";
 import { meta, ASOF, initiatives } from "./data.js";
 import Portfolio from "./components/Portfolio.jsx";
 import Cockpit from "./components/Cockpit.jsx";
+import CaseFile from "./components/CaseFile.jsx";
 
 export default function App() {
   const [selectedId, setSelectedId] = useState(null);
+  const [caseOpen, setCaseOpen] = useState(false);
   const selected = initiatives.find((i) => i.id === selectedId);
 
   return (
@@ -15,7 +17,10 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2.5">
                 <button
-                  onClick={() => setSelectedId(null)}
+                  onClick={() => {
+                    setSelectedId(null);
+                    setCaseOpen(false);
+                  }}
                   className="text-lg font-bold tracking-tight text-white hover:text-pale-blue"
                 >
                   {meta.company} {meta.system}
@@ -38,10 +43,17 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-5 py-7 sm:px-8">
-        {selected ? (
+        {caseOpen ? (
+          <CaseFile onBack={() => setCaseOpen(false)} />
+        ) : selected ? (
           <Cockpit init={selected} asOf={ASOF} onBack={() => setSelectedId(null)} />
         ) : (
-          <Portfolio initiatives={initiatives} asOf={ASOF} onOpen={setSelectedId} />
+          <Portfolio
+            initiatives={initiatives}
+            asOf={ASOF}
+            onOpen={setSelectedId}
+            onOpenCase={() => setCaseOpen(true)}
+          />
         )}
       </main>
 

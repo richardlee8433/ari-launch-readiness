@@ -87,7 +87,7 @@ function GoalsStrip({ initiatives, asOf, onOpen }) {
 // next move. Rule-based here; in production, scheduled agents draft the
 // options. Judgment stays human either way.
 // ---------------------------------------------------------------------------
-function AgentsStrip({ initiatives, asOf }) {
+function AgentsStrip({ initiatives, asOf, onOpenCase }) {
   const agents = deliveryAgents(initiatives, asOf);
   return (
     <div>
@@ -122,6 +122,15 @@ function AgentsStrip({ initiatives, asOf }) {
               <p className="mt-2 rounded-lg bg-white px-3 py-2 text-xs leading-relaxed text-navy-2">
                 <span className="font-bold text-teal-deep">→ drafted move:</span> {a.recommendation}
               </p>
+            )}
+            {a.name === "Blocker Agent" && (
+              <button
+                onClick={onOpenCase}
+                className="mt-2 flex w-full items-center justify-between rounded-lg border border-teal/40 bg-pale-blue/50 px-3 py-1.5 text-xs font-semibold text-teal-deep transition hover:bg-teal hover:text-white"
+              >
+                <span>📁 Case file: Project ABC180 — why this agent exists</span>
+                <span aria-hidden>→</span>
+              </button>
             )}
           </div>
         ))}
@@ -234,11 +243,11 @@ function EventsFeed({ initiatives, onOpen }) {
   );
 }
 
-export default function Portfolio({ initiatives, asOf, onOpen }) {
+export default function Portfolio({ initiatives, asOf, onOpen, onOpenCase }) {
   return (
     <div className="space-y-6">
       <GoalsStrip initiatives={initiatives} asOf={asOf} onOpen={onOpen} />
-      <AgentsStrip initiatives={initiatives} asOf={asOf} />
+      <AgentsStrip initiatives={initiatives} asOf={asOf} onOpenCase={onOpenCase} />
       <RhythmAxis initiatives={initiatives} asOf={asOf} onOpen={onOpen} />
       <EventsFeed initiatives={initiatives} onOpen={onOpen} />
     </div>

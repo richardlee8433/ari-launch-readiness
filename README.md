@@ -36,6 +36,8 @@ The Blocker Agent also exists as an actual runnable agent — `npm run agent:blo
 
 Why this one got promoted: it's the agent the real-data stress tests caught being wrong twice (wrong target, judgment that didn't scale with severity). It earned trust the way team tooling should — by being tested, failing visibly, and being fixed.
 
+**The agent also has a case file.** Click the Blocker Agent card → **Project ABC180**: a month-by-month replay of a real (fully de-identified) product I managed for three years that never launched — two blockers that were never resolved (590 and 522 days old at termination), nine months of silence, and a stop decision that took 19 months to happen and was never written down by anyone. Scrub through the months and compare what the agent would have said with what actually happened. The agent's aging tiers and the system's drift rule were learned from this case.
+
 ```bash
 npm run agent:blockers                    # runs on the demo data
 node agents/blocker-agent.mjs <data.mjs>  # runs on any initiative data file
