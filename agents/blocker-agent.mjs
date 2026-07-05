@@ -75,11 +75,13 @@ ${JSON.stringify(blockers, null, 2)}`;
     shell: true,
   });
   // CLI plugins' lifecycle hooks can fail and flip the exit code even when
-  // the draft printed fine — trust non-empty stdout over the exit code.
+  // the draft printed fine — trust stdout over the exit code, but not when
+  // stdout is itself an error message (auth failures print to stdout).
   const out = (res.stdout || "").trim();
-  if (out) return out;
+  const looksLikeError = /API Error|Failed to authenticate|Invalid authentication|not logged in/i.test(out);
+  if (out && !looksLikeError && out.length > 100) return out;
   const firstErr =
-    ((res.stderr || "") + "\n" + (res.error?.message || ""))
+    (out + "\n" + (res.stderr || "") + "\n" + (res.error?.message || ""))
       .split("\n")
       .map((l) => l.trim())
       .find(Boolean) || "no output from claude -p";
