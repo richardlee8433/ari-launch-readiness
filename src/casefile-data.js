@@ -96,7 +96,201 @@ export const CASE = {
     },
     {
       title: "Stopping is also a decision",
-      text: "A park-or-continue decision was first overdue in December 2024. The documented stop arrived in July 2026 — 18 months later, written by the partner, not by us. No one ever recorded a decision to stop. A decision log with owners and due dates exists precisely so that endings are chosen, not drifted into.",
+      text: "A park-or-continue decision was first overdue in December 2024. The documented stop arrived in July 2026 — 19 months later, written by the partner, not by us. No one ever recorded a decision to stop. A decision log with owners and due dates exists precisely so that endings are chosen, not drifted into.",
+    },
+    {
+      title: "Capture is automatable — that's the agentic difference",
+      text: "Nobody registered a blocker until August 2024, but the risk was in the mail from November 2023: a six-week go-live expectation next to a list of unresolved payment questions; a commitment standing on three untracked conditions; a farewell email nobody read as a risk event. An extraction agent reading the exhaust proposes these into the backbone; deterministic rules do the ageing and alarming; a human confirms. The system doesn't wait for discipline — it reads.",
     },
   ],
 };
+
+// ============================================================================
+// The full-system replay layer — a backbone reconstructed FROM the real mail
+// archive (16 threads, 2023-08 → 2026-07) by an extraction pass, so all four
+// agents can be replayed, not just the Blocker Agent. Methodology:
+// signal categories were defined before extraction; every flag cites
+// in-month evidence (paraphrased and de-identified); nothing is flagged that
+// can't point at text that existed in that month.
+// ============================================================================
+
+// Commitments & expectations — the Pace Agent's inputs.
+export const commitments = [
+  {
+    what: "Partner go-live expectation for the subscription",
+    type: "expectation",
+    set: "2023-11-16",
+    due: "2023-12-31",
+    met: false,
+    resetRecorded: false,
+  },
+  {
+    what: "Committed delivery — May 2024",
+    type: "commitment",
+    set: "2024-02-16",
+    due: "2024-05-31",
+    met: false,
+    resetRecorded: false,
+    conditions: [
+      { what: "Partner payment-gateway ready", due: "2024-04-01", confirmed: false },
+      { what: "Flows/UI confirmed by partner", due: "2024-04-01", confirmed: true },
+      { what: "Content partner integration info provided", due: "2024-04-01", confirmed: true },
+    ],
+  },
+];
+
+// Decisions — the Decision Agent's inputs. One decided fast (the healthy
+// contrast), three that aged or were never taken.
+export const caseDecisions = [
+  {
+    q: "Funding model: partner pays for the build vs revenue share",
+    owner: "Commercial — never assigned",
+    raised: "2024-01-19",
+    resolved: null,
+  },
+  {
+    q: "Accelerate the subscription off the Q3 roadmap into phase 1",
+    owner: "Product exec",
+    raised: "2024-01-23",
+    resolved: "2024-01-31", // raised, argued, decided in 8 days — the good one
+  },
+  {
+    q: "Partner legal approval of updated terms",
+    owner: "Partner legal — no due date ever set",
+    raised: "2024-11-04",
+    resolved: null,
+  },
+  {
+    q: "Park or continue this initiative",
+    owner: "— never assigned —",
+    raised: "2024-12-18", // the date the oldest blocker crossed 4x SLA
+    resolved: "2026-07-03",
+    resolvedBy: "the partner, by terminating the contract",
+  },
+];
+
+// Absorption — the Adoption Agent's input. Phase 1 went live in Nov 2023;
+// no target was ever set and no usage was ever measured.
+export const caseAdoption = {
+  phase1Live: "2023-11-02",
+  measured: false,
+  investment: "The subscription build (~121 engineering person-days) was accelerated in Jan 2024 on partner request alone — with zero recorded phase-1 usage data.",
+};
+
+// Exhaust flags — what an extraction agent reading that month's mail would
+// have proposed. Every entry paraphrases in-month evidence; de-identified.
+export const exhaust = [
+  {
+    ym: "2023-11",
+    flags: [
+      { agent: "Pace", text: "Go-live expected in six weeks — while the same meeting minutes leave payment method, transaction tracking and the content list unconfirmed." },
+      { agent: "Adoption", text: "Phase 1 went live this month. No thread sets a usage target or asks who is actually watching." },
+    ],
+  },
+  {
+    ym: "2023-12",
+    flags: [
+      { agent: "Pace", text: "The end-of-year go-live expectation lapses unmet. No message records a reset of partner expectations — the date just evaporates." },
+    ],
+  },
+  {
+    ym: "2024-01",
+    flags: [
+      { agent: "Decision", text: "Funding model raised and left hanging: partner wants the build funded in exchange for revenue share — “but provided no data.” No owner, no date." },
+      { agent: "Pace", text: "An exec writes that missing early delivery would be a “second fail” with this partner. The relationship risk is now in writing — and in nobody's tracker." },
+      { agent: "Decision", text: "Healthy contrast: the roadmap-acceleration question was raised, argued and decided in 8 days. Decisions move fast here when someone owns them." },
+    ],
+  },
+  {
+    ym: "2024-02",
+    flags: [
+      { agent: "Pace", text: "May delivery committed on three external conditions — partner gateway ready before April chief among them. None of the three is tracked as a gate anywhere." },
+    ],
+  },
+  {
+    ym: "2024-04",
+    flags: [
+      { agent: "Pace", text: "The “gateway ready before April” condition passes with no recorded confirmation. The May commitment now stands on an unverified condition." },
+    ],
+  },
+  {
+    ym: "2024-05",
+    flags: [
+      { agent: "Pace", text: "Design declared final — but the committed delivery month ends with no launch and no successor date anywhere in the record. The initiative is now running dateless." },
+    ],
+  },
+  {
+    ym: "2024-08",
+    flags: [
+      { agent: "Blocker", text: "Healthy contrast: a staging payment bug goes raised → root-caused → partner-fixed in 7 days. This pair can move when both sides engage." },
+      { agent: "Drift", text: "A progress update bounces for 12 partner recipients (attachments too large) — only the core team receives it. A communication-integrity signal hiding in an automated NDR." },
+    ],
+  },
+  {
+    ym: "2024-10",
+    flags: [
+      { agent: "Decision", text: "A terms-of-use change heads toward partner legal — with no owner-side due date attached. (Security review, by contrast, is answered same-day.)" },
+    ],
+  },
+  {
+    ym: "2024-11",
+    flags: [
+      { agent: "Blocker", text: "Production verification goes on hold over a partner API issue — reported inside a reply, registered nowhere as a blocker." },
+    ],
+  },
+  {
+    ym: "2024-12",
+    flags: [
+      { agent: "Drift", text: "The programme driver's farewell email is in the archive. No thread names a successor for the partnership. An extraction agent reads farewell emails as risk events; humans read them as goodbyes." },
+    ],
+  },
+  {
+    ym: "2025-01",
+    flags: [
+      { agent: "Blocker", text: "The partner's email API stops returning valid responses on stage. Log analysis later dates the last good response to mid-January." },
+    ],
+  },
+  {
+    ym: "2025-03",
+    flags: [
+      { agent: "Drift", text: "The content partner's reminder — production testing still can't close — goes unanswered." },
+      { agent: "Decision", text: "The terms-approval question resurfaces after five dormant months. Still no due date." },
+    ],
+  },
+  {
+    ym: "2025-05",
+    flags: [
+      { agent: "Blocker", text: "Partner asserts the “issue is not from our side” while its own middleware logs show nothing arriving. The debugging loop has turned adversarial." },
+    ],
+  },
+  {
+    ym: "2025-06",
+    flags: [
+      { agent: "Blocker", text: "Partner cannot say which internal team owns the failing layer. The remaining blocker is the partner's own test environment — and no thread proposes the obvious decision: waive stage verification, or park. Then everything goes quiet." },
+    ],
+  },
+  {
+    ym: "2026-03",
+    flags: [
+      { agent: "Blocker", text: "Force majeure: the hosting region is offline. Routine renewal requests now bounce off a dead environment." },
+    ],
+  },
+  {
+    ym: "2026-04",
+    flags: [
+      { agent: "Decision", text: "Cancellation notified. A security-closure question is asked — and answered “TBD.”" },
+    ],
+  },
+  {
+    ym: "2026-05",
+    flags: [
+      { agent: "Drift", text: "Credentials are still being rotated a month after cancellation — operational upkeep outliving the product it served." },
+    ],
+  },
+  {
+    ym: "2026-07",
+    flags: [
+      { agent: "Decision", text: "Formal termination — the first documented stop decision in 35 months, written by the partner." },
+    ],
+  },
+];

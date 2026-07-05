@@ -128,7 +128,7 @@ function AgentsStrip({ initiatives, asOf, onOpenCase }) {
                 onClick={onOpenCase}
                 className="mt-2 flex w-full items-center justify-between rounded-lg border border-teal/40 bg-pale-blue/50 px-3 py-1.5 text-xs font-semibold text-teal-deep transition hover:bg-teal hover:text-white"
               >
-                <span>📁 Case file: Project ABC180 — why this agent exists</span>
+                <span>📁 Case file: Project ABC180 — the full system replayed against a real never-launch</span>
                 <span aria-hidden>→</span>
               </button>
             )}

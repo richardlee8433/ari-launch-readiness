@@ -1,11 +1,12 @@
-// The Blocker Agent's case file — Project ABC180.
-// A month-by-month replay of a real (de-identified) never-launched product:
-// scrub through time and compare what the agent would have said each month
-// with what actually happened. The agent's aging tiers and the system's
-// drift rule were learned from this case.
+// Project ABC180 — the full Delivery OS replayed against a real never-launch.
+// A backbone was reconstructed from the real mail archive by an extraction
+// pass (categories defined ex ante; every flag cites in-month evidence);
+// the same deterministic rules the live dashboard uses are then replayed
+// month by month. Scrub through time: left is what the system would have
+// said, right is what actually happened.
 
 import { useState } from "react";
-import { CASE } from "../casefile-data.js";
+import { CASE, commitments, caseDecisions, caseAdoption, exhaust } from "../casefile-data.js";
 import { daysBetween } from "../derive.js";
 import { SectionLabel } from "./ui.jsx";
 
@@ -36,36 +37,118 @@ const fmtMonth = (ym) => {
 
 const MONTHS = monthList(CASE.window.from, CASE.window.to);
 
-// ---- per-month derivation (same rules as the live agent) --------------------
+// ---- per-month replay (same rules as the live agents) -----------------------
 function monthView(ym) {
   const asOf = endOfMonth(ym);
-  const open = CASE.blockers
-    .filter((b) => b.raised <= asOf && (!b.resolved || b.resolved > asOf))
-    .map((b) => {
-      const age = daysBetween(b.raised, asOf);
-      return { ...b, age, tier: age > PARK ? "continue-or-park" : age > SLA ? "working-session" : "within-sla" };
+  const flags = []; // { agent, tone: "red"|"amber"|"green", text }
+
+  // PACE — expectations, conditional commitments, dateless running
+  for (const c of commitments) {
+    if (c.set > asOf) continue;
+    // the informal expectation is superseded once the formal commitment exists
+    if (c.type === "expectation" && asOf >= "2024-02-16") continue;
+    if (c.due > asOf) {
+      const unconfirmed = (c.conditions || []).filter((x) => !x.confirmed);
+      if (unconfirmed.length) {
+        flags.push({
+          agent: "Pace",
+          tone: "amber",
+          text: `“${c.what}” stands on ${unconfirmed.length} untracked external condition(s) — none registered as a gate.`,
+        });
+      }
+      const overdueCond = (c.conditions || []).filter((x) => !x.confirmed && x.due <= asOf);
+      for (const oc of overdueCond) {
+        flags.push({
+          agent: "Pace",
+          tone: "red",
+          text: `Condition “${oc.what}” was due ${daysBetween(oc.due, asOf)}d ago with no recorded confirmation — the commitment now stands on an unverified condition.`,
+        });
+      }
+    } else if (!c.met && !c.resetRecorded) {
+      flags.push({
+        agent: "Pace",
+        tone: "red",
+        text: `“${c.what}” passed ${daysBetween(c.due, asOf)}d ago — not met, and no new date recorded anywhere. The initiative is running dateless.`,
+      });
+    }
+  }
+
+  // DECISION — open decisions age; ownerless ones age louder
+  for (const d of caseDecisions) {
+    if (d.raised > asOf) continue;
+    if (d.resolved && d.resolved <= asOf) {
+      if (d.resolved.slice(0, 7) === ym) {
+        flags.push({
+          agent: "Decision",
+          tone: "green",
+          text: `Decided${d.resolvedBy ? ` — by ${d.resolvedBy}` : ` in ${daysBetween(d.raised, d.resolved)}d`}: “${d.q}”`,
+        });
+      }
+      continue;
+    }
+    const age = daysBetween(d.raised, asOf);
+    const ownerless = d.owner.includes("never") || d.owner.includes("no due date");
+    flags.push({
+      agent: "Decision",
+      tone: age > 30 || ownerless ? "red" : "amber",
+      text: `Open ${age}d: “${d.q}” (${d.owner}).`,
     });
+  }
+
+  // BLOCKER — ages and tiers, as on the live dashboard
+  for (const b of CASE.blockers) {
+    if (b.raised > asOf || (b.resolved && b.resolved <= asOf)) continue;
+    const age = daysBetween(b.raised, asOf);
+    const tier = age > PARK ? "continue-or-park" : age > SLA ? "working-session" : "within SLA";
+    flags.push({
+      agent: "Blocker",
+      tone: age > PARK ? "red" : age > SLA ? "amber" : "green",
+      text: `${age}d · ${tier}: ${b.what.split("—")[0].trim()} (waiting on ${b.waitingOn.split("—")[0].trim()}).`,
+    });
+  }
+
+  // ADOPTION — live with nothing measured
+  if (caseAdoption.phase1Live <= asOf && !caseAdoption.measured && asOf < CASE.terminated) {
+    flags.push({
+      agent: "Adoption",
+      tone: "amber",
+      text: `Phase 1 live ${daysBetween(caseAdoption.phase1Live, asOf)}d — no usage target set, nothing measured. ${asOf >= "2024-01-31" ? "The subscription build was accelerated on zero absorption evidence." : ""}`,
+    });
+  }
+
+  // DRIFT — silence with open items; ownership vacuum
   const past = CASE.events.filter((e) => e.date <= asOf);
   const lastEvent = past.length ? past[past.length - 1].date : null;
   const silenceDays = lastEvent ? daysBetween(lastEvent, asOf) : 0;
-  const drift = silenceDays > 30 && open.length > 0;
-  const ownerVacant = asOf >= CASE.ownerVacantFrom;
+  const openBlockers = CASE.blockers.filter((b) => b.raised <= asOf && (!b.resolved || b.resolved > asOf));
+  if (silenceDays > 30 && openBlockers.length > 0) {
+    flags.push({
+      agent: "Drift",
+      tone: "red",
+      text: `No recorded activity for ${silenceDays}d with ${openBlockers.length} blocker(s) open. This initiative has no driver — name an owner, or park it formally.`,
+    });
+  }
+  if (asOf >= CASE.ownerVacantFrom && asOf < CASE.terminated) {
+    flags.push({
+      agent: "Drift",
+      tone: "amber",
+      text: "Programme driver left with no successor named — every open item above is informally owned.",
+    });
+  }
+
   const events = CASE.events.filter((e) => e.date.slice(0, 7) === ym);
-  return { asOf, open, events, silenceDays, drift, ownerVacant };
+  const mail = exhaust.find((x) => x.ym === ym)?.flags || [];
+  return { asOf, flags, events, mail, silenceDays, openBlockers };
 }
 
-const TIER_STYLE = {
-  "within-sla": { chip: "bg-green-soft text-green", label: "within SLA" },
-  "working-session": { chip: "bg-amber-soft text-amber", label: "working session" },
-  "continue-or-park": { chip: "bg-red-soft text-red", label: "continue-or-park" },
+const AGENT_TAG = {
+  Pace: "bg-pale-blue text-teal-deep",
+  Decision: "bg-amber-soft text-amber",
+  Blocker: "bg-red-soft text-red",
+  Adoption: "bg-pale-lime text-navy",
+  Drift: "bg-line text-navy-2",
 };
-
-const MOVE = {
-  "working-session":
-    "book a 30-minute working session between the two owners this week; it won't clear itself in the weekly.",
-  "continue-or-park":
-    "past working-session territory — take a continue-or-park decision to the exec sponsor this week.",
-};
+const TONE_DOT = { red: "bg-red", amber: "bg-amber", green: "bg-green" };
 
 // ---- pieces -----------------------------------------------------------------
 function Stat({ value, label, tone = "text-navy" }) {
@@ -119,13 +202,16 @@ function LifespanChart({ ym }) {
   const span = end - start;
   const pct = (d) => Math.min(100, Math.max(0, ((new Date(d) - start) / span) * 100));
   const cursor = pct(endOfMonth(ym));
+  const addDays = (d, n) => new Date(new Date(d).getTime() + n * 86400000).toISOString().slice(0, 10);
   return (
     <div className="relative space-y-2 rounded-2xl border border-line bg-white p-4 shadow-sm">
-      <SectionLabel>Blocker lifespans — raised → resolved (or not)</SectionLabel>
+      <SectionLabel>Blocker lifespans — with the thresholds where the system would have fired</SectionLabel>
       {CASE.blockers.map((b) => {
         const from = pct(b.raised);
         const to = b.resolved ? pct(b.resolved) : 100;
         const days = daysBetween(b.raised, b.resolved || CASE.terminated);
+        const slaTick = pct(addDays(b.raised, SLA));
+        const parkTick = pct(addDays(b.raised, PARK));
         return (
           <div key={b.id} className="relative">
             <div className="mb-0.5 flex items-baseline justify-between gap-2 text-xs">
@@ -139,15 +225,29 @@ function LifespanChart({ ym }) {
                 className={`absolute h-3 rounded-full ${b.resolved ? "bg-green/60" : "bg-red/60"}`}
                 style={{ left: `${from}%`, width: `${Math.max(to - from, 1)}%` }}
               />
+              {!b.resolved && (
+                <>
+                  <div
+                    className="absolute -top-0.5 h-4 w-0.5 bg-amber"
+                    style={{ left: `${slaTick}%` }}
+                    title={`7d SLA — working session fires here`}
+                  />
+                  <div
+                    className="absolute -top-0.5 h-4 w-0.5 bg-red"
+                    style={{ left: `${parkTick}%` }}
+                    title={`28d — continue-or-park fires here`}
+                  />
+                </>
+              )}
             </div>
           </div>
         );
       })}
-      {/* time cursor */}
-      <div className="pointer-events-none absolute bottom-3 top-10 w-0.5 bg-teal" style={{ left: `calc(${cursor}% )` }} />
+      <div className="pointer-events-none absolute bottom-10 top-10 w-0.5 bg-teal" style={{ left: `calc(${cursor}% )` }} />
       <p className="pt-1 text-[11px] text-mid">
-        Teal line = the month you're viewing. The green bar is what healthy looks like — 7 days,
-        because both sides engaged. The red bars are what this page is about.
+        Teal line = the month you're viewing. Amber tick = working session would fire (7d). Red tick
+        = continue-or-park would fire (28d). Everything to the right of a red tick is time the
+        system would not have allowed to pass silently.
       </p>
     </div>
   );
@@ -176,10 +276,17 @@ export default function CaseFile({ onBack }) {
           <span className="text-sm text-mid">{CASE.subtitle}</span>
         </div>
         <p className="mt-3 text-sm leading-relaxed text-navy-2">
-          Why does the Blocker Agent escalate with age? Why does the system treat silence as a
-          signal? Because of this project. Scrub through the months and compare{" "}
-          <span className="font-semibold">what the agent would have said</span> with{" "}
-          <span className="font-semibold">what actually happened</span>.
+          The whole system, replayed against a real never-launch. A backbone was reconstructed from
+          the project's real mail archive by an extraction pass; the same rules the live dashboard
+          runs are then replayed month by month. Scrub through time:{" "}
+          <span className="font-semibold">left is what the system would have said, right is what
+          actually happened.</span>
+        </p>
+        <p className="mt-2 rounded-lg bg-pale-blue/60 px-3 py-2 text-xs leading-relaxed text-teal-deep">
+          An agent reading the mail flags risk in <span className="font-bold">Nov 2023</span> — nine
+          months before the first humanly-recorded blocker (Aug 2024) — and the rules force a
+          park-or-continue decision by <span className="font-bold">Dec 2024</span>, 19 months before
+          the stop actually came, written by the partner.
         </p>
       </div>
 
@@ -228,45 +335,41 @@ export default function CaseFile({ onBack }) {
       {/* the two columns */}
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-teal/40 bg-white p-4 shadow-sm">
-          <SectionLabel>What the agent would have said — {fmtMonth(ym)}</SectionLabel>
-          {v.open.length === 0 && !v.drift && (
+          <SectionLabel>The Delivery OS replay — {fmtMonth(ym)}</SectionLabel>
+          {v.flags.length === 0 ? (
             <p className="text-sm text-mid">
-              No open blockers. The agent stays quiet — that's part of the job too.
+              Nothing to flag. The system stays quiet — that's part of the job too.
             </p>
-          )}
-          <ul className="space-y-2.5">
-            {v.open.map((b) => (
-              <li key={b.id} className="rounded-xl border border-line p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium leading-snug text-navy-2">{b.what.split("—")[0].trim()}</p>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${TIER_STYLE[b.tier].chip}`}>
-                    {b.age}d · {TIER_STYLE[b.tier].label}
+          ) : (
+            <ul className="space-y-1.5">
+              {v.flags.map((f, i) => (
+                <li key={i} className="flex items-start gap-2 rounded-lg border border-line/70 px-2.5 py-1.5">
+                  <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${AGENT_TAG[f.agent]}`}>
+                    {f.agent}
                   </span>
-                </div>
-                <p className="mt-1 text-xs text-mid">Waiting on: {b.waitingOn}</p>
-                {b.tier !== "within-sla" && (
-                  <p className="mt-2 rounded-lg bg-pale-blue/60 px-2.5 py-1.5 text-xs leading-relaxed text-navy-2">
-                    <span className="font-bold text-teal-deep">→ drafted move:</span> {MOVE[b.tier]}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-          {v.drift && (
-            <div className="mt-2.5 rounded-xl border border-red/40 bg-red-soft/40 p-3">
-              <p className="text-sm font-bold text-red">⚠ Drift alarm</p>
-              <p className="mt-1 text-xs leading-relaxed text-navy-2">
-                No recorded activity for <span className="font-bold">{v.silenceDays} days</span> with{" "}
-                {v.open.length} blocker(s) still open. This initiative has no driver — name an owner
-                this week, or park it formally with re-entry criteria.
-              </p>
-            </div>
+                  <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${TONE_DOT[f.tone]}`} aria-hidden />
+                  <span className="text-xs leading-relaxed text-navy-2">{f.text}</span>
+                </li>
+              ))}
+            </ul>
           )}
-          {v.ownerVacant && (
-            <p className="mt-2.5 rounded-lg bg-amber-soft/50 px-3 py-2 text-xs leading-relaxed text-navy-2">
-              <span className="font-bold text-amber">Ownership gap:</span> the programme driver left
-              in Dec 2024 with no successor named — every open item above is now informally owned.
-            </p>
+
+          {v.mail.length > 0 && (
+            <div className="mt-3 rounded-xl bg-pale-blue/50 p-3">
+              <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-teal-deep">
+                📨 What the extraction agent read in that month's mail
+              </p>
+              <ul className="space-y-1.5">
+                {v.mail.map((m, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs leading-relaxed text-navy-2">
+                    <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${AGENT_TAG[m.agent]}`}>
+                      {m.agent}
+                    </span>
+                    <span className="italic">{m.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
 
@@ -276,8 +379,8 @@ export default function CaseFile({ onBack }) {
             <div className="rounded-xl border border-dashed border-line px-4 py-6 text-center">
               <p className="text-sm font-semibold text-red/80">— no recorded activity —</p>
               <p className="mt-1 text-xs text-mid">
-                {v.open.length > 0
-                  ? "Both threads silent. Nobody escalated, nobody parked it, nobody wrote anything down."
+                {v.openBlockers.length > 0
+                  ? "Threads silent. Nobody escalated, nobody parked it, nobody wrote anything down."
                   : "Quiet month."}
               </p>
             </div>
@@ -299,7 +402,7 @@ export default function CaseFile({ onBack }) {
       {/* lessons */}
       <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
         <SectionLabel>What this case taught the system</SectionLabel>
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-2">
           {CASE.lessons.map((l, i) => (
             <div key={i}>
               <h3 className="text-sm font-bold text-navy">
@@ -314,8 +417,9 @@ export default function CaseFile({ onBack }) {
       <p className="text-xs leading-relaxed text-mid">
         Reconstructed from a real never-launched product the author managed (2023–2026). All
         partners, companies, people, systems and identifying details have been removed or
-        generalized; dates, durations and the shape of events are real. Shown as the case that
-        taught this system its blocker-aging tiers and its drift rule.
+        generalized; dates, durations and the shape of events are real. Method: signal categories
+        were defined before extraction, and every flag cites in-month evidence — nothing is flagged
+        that can't point at text that existed in that month.
       </p>
     </div>
   );
