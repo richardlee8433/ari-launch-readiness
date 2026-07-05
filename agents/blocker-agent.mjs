@@ -17,7 +17,7 @@
 // Output: agents/briefs/unblock-brief-<date>.md
 // ============================================================================
 
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -67,12 +67,23 @@ Rules: be concrete and terse. Use ONLY the facts given — do not invent names, 
 Blockers:
 ${JSON.stringify(blockers, null, 2)}`;
 
-  return execSync("claude -p", {
+  const res = spawnSync("claude", ["-p"], {
     input: prompt,
     encoding: "utf8",
     maxBuffer: 10 * 1024 * 1024,
     timeout: 300000,
-  }).trim();
+    shell: true,
+  });
+  // CLI plugins' lifecycle hooks can fail and flip the exit code even when
+  // the draft printed fine — trust non-empty stdout over the exit code.
+  const out = (res.stdout || "").trim();
+  if (out) return out;
+  const firstErr =
+    ((res.stderr || "") + "\n" + (res.error?.message || ""))
+      .split("\n")
+      .map((l) => l.trim())
+      .find(Boolean) || "no output from claude -p";
+  throw new Error(firstErr);
 }
 
 // --- action (write the brief; sending it stays with the human) ---------------
