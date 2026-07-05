@@ -6,7 +6,7 @@
 // said, right is what actually happened.
 
 import { useState } from "react";
-import { CASE, commitments, caseDecisions, caseAdoption, exhaust } from "../casefile-data.js";
+import { CASE, commitments, caseDecisions, caseAdoption, exhaust, draftedMoves } from "../casefile-data.js";
 import { daysBetween } from "../derive.js";
 import { SectionLabel } from "./ui.jsx";
 
@@ -196,59 +196,56 @@ function Heartbeat({ ym, setYm }) {
   );
 }
 
-function LifespanChart({ ym }) {
-  const start = new Date(`${CASE.window.from}-01`);
-  const end = new Date(CASE.terminated);
-  const span = end - start;
-  const pct = (d) => Math.min(100, Math.max(0, ((new Date(d) - start) / span) * 100));
-  const cursor = pct(endOfMonth(ym));
-  const addDays = (d, n) => new Date(new Date(d).getTime() + n * 86400000).toISOString().slice(0, 10);
+const SIDE_CHIP = {
+  us: { label: "our side", cls: "bg-teal/15 text-teal-deep" },
+  partner: { label: "partner side", cls: "bg-amber-soft text-amber" },
+  joint: { label: "joint", cls: "bg-navy text-white" },
+};
+
+function MovesPanel({ ym }) {
+  // latest drafted-move set at or before this month — moves stand until acted on
+  const current = [...draftedMoves].reverse().find((d) => d.ym <= ym);
+  const standing = current && current.ym !== ym;
+  const standingMonths = standing
+    ? (Number(ym.slice(0, 4)) - Number(current.ym.slice(0, 4))) * 12 +
+      (Number(ym.slice(5)) - Number(current.ym.slice(5)))
+    : 0;
   return (
-    <div className="relative space-y-2 rounded-2xl border border-line bg-white p-4 shadow-sm">
-      <SectionLabel>Blocker lifespans — with the thresholds where the system would have fired</SectionLabel>
-      {CASE.blockers.map((b) => {
-        const from = pct(b.raised);
-        const to = b.resolved ? pct(b.resolved) : 100;
-        const days = daysBetween(b.raised, b.resolved || CASE.terminated);
-        const slaTick = pct(addDays(b.raised, SLA));
-        const parkTick = pct(addDays(b.raised, PARK));
-        return (
-          <div key={b.id} className="relative">
-            <div className="mb-0.5 flex items-baseline justify-between gap-2 text-xs">
-              <span className="truncate font-medium text-navy-2">{b.what.split("—")[0].trim()}</span>
-              <span className={`shrink-0 font-bold ${b.resolved ? "text-green" : "text-red"}`}>
-                {days}d {b.resolved ? "· resolved" : "· never resolved"}
-              </span>
+    <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <SectionLabel>The drafted moves — {fmtMonth(ym)}</SectionLabel>
+        <span className="text-[11px] text-mid">
+          LLM-drafted from that month's flags — every move names an owner; drafting is not deciding
+        </span>
+      </div>
+      {!current ? (
+        <p className="text-sm text-mid">Nothing on the table yet.</p>
+      ) : (
+        <>
+          {standing && (
+            <div className="mb-2.5 rounded-lg bg-red-soft/50 px-3 py-2 text-xs font-semibold text-red">
+              Standing since {fmtMonth(current.ym)} — {standingMonths} month{standingMonths === 1 ? "" : "s"} on
+              the table, no action recorded.
             </div>
-            <div className="relative h-3 rounded-full bg-pale-blue">
-              <div
-                className={`absolute h-3 rounded-full ${b.resolved ? "bg-green/60" : "bg-red/60"}`}
-                style={{ left: `${from}%`, width: `${Math.max(to - from, 1)}%` }}
-              />
-              {!b.resolved && (
-                <>
-                  <div
-                    className="absolute -top-0.5 h-4 w-0.5 bg-amber"
-                    style={{ left: `${slaTick}%` }}
-                    title={`7d SLA — working session fires here`}
-                  />
-                  <div
-                    className="absolute -top-0.5 h-4 w-0.5 bg-red"
-                    style={{ left: `${parkTick}%` }}
-                    title={`28d — continue-or-park fires here`}
-                  />
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })}
-      <div className="pointer-events-none absolute bottom-10 top-10 w-0.5 bg-teal" style={{ left: `calc(${cursor}% )` }} />
-      <p className="pt-1 text-[11px] text-mid">
-        Teal line = the month you're viewing. Amber tick = working session would fire (7d). Red tick
-        = continue-or-park would fire (28d). Everything to the right of a red tick is time the
-        system would not have allowed to pass silently.
-      </p>
+          )}
+          <ul className="space-y-2">
+            {current.moves.map((m, i) => (
+              <li key={i} className="rounded-xl border border-line p-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${AGENT_TAG[m.agent]}`}>
+                    {m.agent}
+                  </span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${SIDE_CHIP[m.side].cls}`}>
+                    {SIDE_CHIP[m.side].label}
+                  </span>
+                  <span className="text-[11px] font-semibold text-navy">{m.owner}</span>
+                </div>
+                <p className="mt-1.5 text-xs leading-relaxed text-navy-2">{m.action}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -397,7 +394,7 @@ export default function CaseFile({ onBack }) {
         </div>
       </div>
 
-      <LifespanChart ym={ym} />
+      <MovesPanel ym={ym} />
 
       {/* lessons */}
       <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">

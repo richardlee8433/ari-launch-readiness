@@ -177,6 +177,120 @@ export const caseAdoption = {
   investment: "The subscription build (~121 engineering person-days) was accelerated in Jan 2024 on partner request alone — with zero recorded phase-1 usage data.",
 };
 
+// Drafted moves — what the drafting layer (LLM over that month's flags) would
+// have put on the table, each with a named owner side. Months without an
+// entry inherit the latest standing entry — during the drift, the same moves
+// sit on the table month after month with no action recorded. That
+// repetition is the point.
+export const draftedMoves = [
+  {
+    ym: "2023-11",
+    moves: [
+      { agent: "Pace", side: "joint", owner: "Product (us) + partner programme lead", action: "Reset the go-live expectation formally — reply to the strategy minutes with a scoped plan and a realistic date, before the December expectation hardens into a promise." },
+      { agent: "Adoption", side: "joint", owner: "Product (us) + content partner", action: "Define the phase-1 usage metric and target now — it becomes the evidence base for any subscription investment decision." },
+    ],
+  },
+  {
+    ym: "2023-12",
+    moves: [
+      { agent: "Pace", side: "us", owner: "Product (us)", action: "The December expectation has lapsed — send a written expectation reset with the scoping timeline. Silence reads as agreement to an impossible date." },
+    ],
+  },
+  {
+    ym: "2024-01",
+    moves: [
+      { agent: "Decision", side: "us", owner: "Commercial (us)", action: "Assign the funding-model decision an owner and a due date BEFORE committing ~121 person-days — build-first-negotiate-later gives the leverage away." },
+      { agent: "Adoption", side: "partner", owner: "Product (us) → partner platform team", action: "Pull phase-1 usage numbers from the partner before the acceleration decision — right now the investment case is a request, not evidence." },
+    ],
+  },
+  {
+    ym: "2024-02",
+    moves: [
+      { agent: "Pace", side: "joint", owner: "Delivery (us) + partner platform team", action: "Register the three delivery conditions as tracked gates — gateway readiness by 1 April, each with a named checker. A commitment standing on untracked conditions is a wish." },
+    ],
+  },
+  {
+    ym: "2024-04",
+    moves: [
+      { agent: "Pace", side: "partner", owner: "Delivery (us) → partner platform team", action: "The gateway-readiness condition is overdue for confirmation — get written confirmation this week or move the May date now. Don't discover it in May." },
+    ],
+  },
+  {
+    ym: "2024-05",
+    moves: [
+      { agent: "Pace", side: "joint", owner: "Product (us) + partner programme", action: "Design is final but the delivery month is ending — commit a new launch date in writing, or formally re-baseline. Do not let the date dissolve." },
+    ],
+  },
+  {
+    ym: "2024-08",
+    moves: [
+      { agent: "Drift", side: "us", owner: "Delivery (us)", action: "Resend the bounced update with trimmed attachments — 12 partner stakeholders silently missed the progress picture and nobody knows it." },
+    ],
+  },
+  {
+    ym: "2024-10",
+    moves: [
+      { agent: "Decision", side: "partner", owner: "Delivery (us) → partner legal", action: "The terms approval is heading to partner legal — attach a due date and a named chaser now. Legal items without dates are where launches go to sleep." },
+    ],
+  },
+  {
+    ym: "2024-11",
+    moves: [
+      { agent: "Blocker", side: "partner", owner: "Delivery (us) → partner platform team", action: "Register the production-verification hold as a formal blocker with a named partner owner — right now it is one sentence inside a reply." },
+    ],
+  },
+  {
+    ym: "2024-12",
+    moves: [
+      { agent: "Drift", side: "us", owner: "Exec sponsor (us) — before his last day", action: "The programme driver is leaving — name the successor for this partnership now and hand over the open-items list explicitly. An unowned partnership doesn't pause; it decays." },
+      { agent: "Blocker", side: "us", owner: "Exec sponsor (us)", action: "Production verification crosses 28 days — take a continue-or-park decision this week, with the cost of each month of drift written down." },
+    ],
+  },
+  {
+    ym: "2025-01",
+    moves: [
+      { agent: "Blocker", side: "partner", owner: "Engineering (us) → partner middleware team", action: "The email-API failure is new — demand a named partner-side owner and an escalation path in week one. Do not start a five-month ticket ping-pong." },
+    ],
+  },
+  {
+    ym: "2025-03",
+    moves: [
+      { agent: "Drift", side: "us", owner: "Delivery (us) → content partner", action: "The content partner's reminder is unanswered — reply with a dated status even if the answer is 'still blocked'. Silence toward your own tester kills the integration." },
+      { agent: "Blocker", side: "us", owner: "Exec sponsor (us)", action: "Both blockers are past park territory — put a continue-or-park memo in front of the sponsor with three options and a decide-by." },
+    ],
+  },
+  {
+    ym: "2025-06",
+    moves: [
+      { agent: "Blocker", side: "joint", owner: "Product (us) + partner platform team", action: "The failure is isolated to the partner's own stage environment while production works — propose waiving stage verification, or park formally. The remaining blocker is their test infra, not the product." },
+    ],
+  },
+  {
+    ym: "2025-07",
+    moves: [
+      { agent: "Drift", side: "us", owner: "Exec sponsor (us)", action: "No driver, no activity, two blockers open — park formally with re-entry criteria and tell the partner in writing. A parked project costs nothing; a drifting one costs trust." },
+    ],
+  },
+  {
+    ym: "2026-03",
+    moves: [
+      { agent: "Blocker", side: "joint", owner: "Exec sponsor (us) + partner programme", action: "Force majeure has taken the platform offline — declare the initiative formally suspended and record the decision. This is the easiest park decision anyone will ever be handed." },
+    ],
+  },
+  {
+    ym: "2026-04",
+    moves: [
+      { agent: "Decision", side: "joint", owner: "Delivery (us) + partner procurement", action: "Cancellation is notified — agree the closure checklist (security items, credentials, contract survivals) with an owner and a date per item. Don't let even the ending drift." },
+    ],
+  },
+  {
+    ym: "2026-07",
+    moves: [
+      { agent: "Decision", side: "us", owner: "Legal + Delivery (us)", action: "Acknowledge within 3 business days, settle which pre-termination obligations survive — and write the post-mortem while the archive is fresh. This page is that post-mortem." },
+    ],
+  },
+];
+
 // Exhaust flags — what an extraction agent reading that month's mail would
 // have proposed. Every entry paraphrases in-month evidence; de-identified.
 export const exhaust = [
