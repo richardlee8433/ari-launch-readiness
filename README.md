@@ -30,6 +30,17 @@ The four initiatives are staged deliberately: one approaching a hard readiness g
 
 **Delivery agents — "who's watching."** The early-warning layer is framed as what it would be in operation: four small agents (Pace, Decision, Blocker, Adoption), each watching one dimension of the backbone and **drafting the next move** — re-scope (it even nominates the newest scope addition as the cut candidate), re-estimate, escalate with a decide-by, re-forecast. Rule-based in this demo; in production these run on a schedule with an LLM drafting the options. Judgment stays human either way.
 
+## One of the four is a real agent
+
+The Blocker Agent also exists as an actual runnable agent — `npm run agent:blockers`. It reuses the dashboard's derive layer as its **sensing tool** (deterministic, auditable), sends over-SLA blockers to Claude to **draft** the unblock move (a working-session agenda at 2x SLA; a continue-or-park memo past 4x), and **writes a brief** for a human to review — it never sends anything itself. If the LLM is unavailable it degrades gracefully: the deterministic findings still stand.
+
+Why this one got promoted: it's the agent the real-data stress tests caught being wrong twice (wrong target, judgment that didn't scale with severity). It earned trust the way team tooling should — by being tested, failing visibly, and being fixed.
+
+```bash
+npm run agent:blockers                    # runs on the demo data
+node agents/blocker-agent.mjs <data.mjs>  # runs on any initiative data file
+```
+
 ## Everything red is derived
 
 The system's health signals are **computed from the backbone data, not hand-set**: readiness %, pace-vs-launch-date gap, decision aging, blocker age, adoption gap. That's the core argument of the design — leading indicators should fall out of the data teams already maintain, not require a second reporting system someone has to feed.

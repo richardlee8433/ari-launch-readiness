@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "agent:blockers": "node agents/blocker-agent.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -17,6 +17,9 @@ dist-ssr
 # Private project notes
 CLAUDE.md
 
+# Agent output (regenerated on each run; one sample is committed instead)
+agents/briefs/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
