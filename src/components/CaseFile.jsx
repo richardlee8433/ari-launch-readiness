@@ -6,7 +6,7 @@
 // said, right is what actually happened.
 
 import { useState } from "react";
-import { CASE, commitments, caseDecisions, caseAdoption, exhaust, draftedMoves } from "../casefile-data.js";
+import { CASE, commitments, caseDecisions, caseAdoption, draftedMoves } from "../casefile-data.js";
 import { daysBetween } from "../derive.js";
 import { SectionLabel } from "./ui.jsx";
 
@@ -137,8 +137,7 @@ function monthView(ym) {
   }
 
   const events = CASE.events.filter((e) => e.date.slice(0, 7) === ym);
-  const mail = exhaust.find((x) => x.ym === ym)?.flags || [];
-  return { asOf, flags, events, mail, silenceDays, openBlockers };
+  return { asOf, flags, events, silenceDays, openBlockers };
 }
 
 const AGENT_TAG = {
@@ -351,23 +350,6 @@ export default function CaseFile({ onBack }) {
             </ul>
           )}
 
-          {v.mail.length > 0 && (
-            <div className="mt-3 rounded-xl bg-pale-blue/50 p-3">
-              <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-teal-deep">
-                📨 What the extraction agent read in that month's mail
-              </p>
-              <ul className="space-y-1.5">
-                {v.mail.map((m, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs leading-relaxed text-navy-2">
-                    <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${AGENT_TAG[m.agent]}`}>
-                      {m.agent}
-                    </span>
-                    <span className="italic">{m.text}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
 
         <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
